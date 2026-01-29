@@ -1,0 +1,42 @@
+name: Deploy
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+
+env:
+  AWS_REGION: eu-north-1
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on:
+      - ubuntu-slim
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::964633644461:role/tf-cv-online-cv-online-pievienocv
+
+      - uses: actions/checkout@v5
+
+      - run: |
+          aws configure set s3.max_concurrent_requests 200
+          aws s3 sync . s3://964633644461-tf-cv-online-cv-online/pievienocv/ \
+            --exclude "*" \
+            --include "index.html" \
+            --include "out.css" \
+            --include "assets/*" \
+            --include "fonts/*" \
+            --delete \
+            # --cache-control "max-age=31536000" \
+            # --exclude "index.html" \
+            # --include "index.html" \
+            --cache-control "no-cache"
